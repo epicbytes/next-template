@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+hostsFile="/etc/hosts"
+
+ip="127.0.0.1"
+
+hostname="$2"
+
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+
+remove() {
+    if [ -n "$(grep $hostname /etc/hosts)" ]; then
+        echo "$hostname found in $hostsFile. Removing now...";
+        try sudo sed -ie "/[[:space:]]$hostname/d" "$hostsFile";
+    else
+        yell "$hostname was not found in $hostsFile";
+    fi
+}
+
+add() {
+    if [ -n "$(grep $hostname /etc/hosts)" ]; then
+        yell "$hostname, Уже добавлен в $hostsFile: $(grep $hostname $hostsFile)";
+    else
+        echo "Добавление $hostname в $hostsFile...";
+        try printf "%s\t%s\n" "$ip" "$hostname" | sudo tee -a "$hostsFile" > /dev/null;
+
+        if [ -n "$(grep $hostname /etc/hosts)" ]; then
+            echo "Домен $hostname удачно добавлен:";
+            echo "$(grep $hostname /etc/hosts)";
+        else
+            die "Ошибка обновления $hostname, Вам требуются права администратора!";
+        fi
+    fi
+}
+
+$@
